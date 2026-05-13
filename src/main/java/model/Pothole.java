@@ -1,61 +1,71 @@
 package com.pothole.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 
 @Entity
-@Table(name = "pothole")
-@JsonIgnoreProperties(ignoreUnknown = true)
+@Table(name = "potholes")
 public class Pothole {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private double lat;
-    private double lng;
-    private String severity;
-    private double speed;
-    private double accelZ;
-    private LocalDateTime detectedAt;
+    @Column(nullable = false)
+    private Double lat;
 
-    @Transient
-    private String timestamp;
+    @Column(nullable = false)
+    private Double lng;
+
+    @Column(nullable = false)
+    private String severity;
+
+    private Double speed;
+
+    private Double accelZ;
+
+    private String photoUri;
+
+    @Column(name = "detected_at")
+    private Instant detectedAt;
+
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
 
     @PrePersist
     public void prePersist() {
-        if (detectedAt == null) {
-            if (timestamp != null && !timestamp.isBlank()) {
-                try {
-                    OffsetDateTime odt = OffsetDateTime.parse(timestamp);
-                    detectedAt = odt.withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime();
-                } catch (Exception e) {
-                    detectedAt = LocalDateTime.now(ZoneOffset.UTC);
-                }
-            } else {
-                detectedAt = LocalDateTime.now(ZoneOffset.UTC);
-            }
+        this.createdAt = Instant.now();
+        if (this.detectedAt == null) {
+            this.detectedAt = Instant.now();
         }
     }
 
-    public Pothole() {}
+    // ── Getters & Setters ──────────────────────────────────────────────────
 
     public Long getId() { return id; }
-    public double getLat() { return lat; }
-    public void setLat(double lat) { this.lat = lat; }
-    public double getLng() { return lng; }
-    public void setLng(double lng) { this.lng = lng; }
+    public void setId(Long id) { this.id = id; }
+
+    public Double getLat() { return lat; }
+    public void setLat(Double lat) { this.lat = lat; }
+
+    public Double getLng() { return lng; }
+    public void setLng(Double lng) { this.lng = lng; }
+
     public String getSeverity() { return severity; }
     public void setSeverity(String severity) { this.severity = severity; }
-    public double getSpeed() { return speed; }
-    public void setSpeed(double speed) { this.speed = speed; }
-    public double getAccelZ() { return accelZ; }
-    public void setAccelZ(double accelZ) { this.accelZ = accelZ; }
-    public LocalDateTime getDetectedAt() { return detectedAt; }
-    public void setDetectedAt(LocalDateTime d) { this.detectedAt = d; }
-    public String getTimestamp() { return timestamp; }
-    public void setTimestamp(String t) { this.timestamp = t; }
+
+    public Double getSpeed() { return speed; }
+    public void setSpeed(Double speed) { this.speed = speed; }
+
+    public Double getAccelZ() { return accelZ; }
+    public void setAccelZ(Double accelZ) { this.accelZ = accelZ; }
+
+    public String getPhotoUri() { return photoUri; }
+    public void setPhotoUri(String photoUri) { this.photoUri = photoUri; }
+
+    public Instant getDetectedAt() { return detectedAt; }
+    public void setDetectedAt(Instant detectedAt) { this.detectedAt = detectedAt; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

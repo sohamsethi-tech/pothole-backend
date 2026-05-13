@@ -1,52 +1,111 @@
-package com.pothole.backend;
+package com.pothole.backend.controller;
 
+import com.pothole.backend.dto.PotholeRequestDTO;
 import com.pothole.backend.model.Pothole;
 import com.pothole.backend.service.PotholeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * REST controller — all routes match what the React Native app calls:
+ *
+ *   POST   /api/detect-pothole   → save a new detection
+ *   GET    /api/potholes         → fetch all (optional ?severity= filter)
+ *   DELETE /api/potholes/{id}    → delete a record
+ *   GET    /api/stats            → quick summary counts
+ *   GET    /api/health           → simple health check
+ */
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*")   // allow React Native / Expo dev client
 public class PotholeController {
 
-    @Autowired
-    private PotholeService potholeService;
+    private final PotholeService service;
 
-    @GetMapping("/potholes")
-    public ResponseEntity<List<Pothole>> getAllPotholes() {
-        return ResponseEntity.ok(potholeService.getAllPotholes());
+    public PotholeController(PotholeService service) {
+        this.service = service;
     }
 
+    // ── POST /api/detect-pothole ───────────────────────────────────────────
     @PostMapping("/detect-pothole")
-    public ResponseEntity<?> detectPothole(@RequestBody Pothole pothole) {
-        Pothole saved = potholeService.savePothole(pothole);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    public ResponseEntity<?> detectPothole(@RequestBody PotholeRequestDTO dto) {
+        // Basic validation — lat/lng must be present
+        if (dto.getLat() == null || dto.getLng() == null) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "lat and lng are required");
+            return ResponseEntity.badRequest().body(err);
+        }
+
+        Pothole saved = service.save(dto);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("id", saved.getId());
+        response.put("severity", saved.getSeverity());
+        response.put("message", "Pothole saved successfully");
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PostMapping("/potholes")
-    public ResponseEntity<?> savePothole(@RequestBody Pothole pothole) {
-        Pothole saved = potholeService.savePothole(pothole);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    // ── GET /api/potholes ─────────────────────────────────────────────────
+    // Optional query param: ?severity=Severe  (or Light / Medium)
+    @GetMapping("/potholes")
+    public ResponseEntity<List<Pothole>> getPotholes(
+            @RequestParam(required = false) String severity) {
+
+        List<Pothole> result = (severity != null && !severity.isBlank())
+                ? service.getBySeverity(severity)
+                : service.getAll();
+
+        return ResponseEntity.ok(result);
     }
 
+    // ── DELETE /api/potholes/{id} ─────────────────────────────────────────
     @DeleteMapping("/potholes/{id}")
     public ResponseEntity<?> deletePothole(@PathVariable Long id) {
-        if (!potholeService.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Not found"));
+        boolean deleted = service.delete(id);
+
+        if (!deleted) {
+            Map<String, String> err = new HashMap<>();
+            err.put("error", "Pothole not found with id: " + id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(err);
         }
-        potholeService.deletePothole(id);
-        return ResponseEntity.ok(Map.of("message", "Deleted", "id", id));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Deleted pothole #" + id);
+        return ResponseEntity.ok(response);
     }
 
+    // ── GET /api/stats ────────────────────────────────────────────────────
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getStats() {
+        List<Pothole> all = service.getAll();
+
+        long severe = all.stream().filter(p -> p.getSeverity() != null && p.getSeverity().contains("Severe")).count();
+        long medium = all.stream().filter(p -> p.getSeverity() != null && p.getSeverity().contains("Medium")).count();
+        long light  = all.stream().filter(p -> p.getSeverity() != null && p.getSeverity().contains("Light")).count();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total",  all.size());
+        stats.put("severe", severe);
+        stats.put("medium", medium);
+        stats.put("light",  light);
+
+        return ResponseEntity.ok(stats);
+    }
+
+    // ── GET /api/health ───────────────────────────────────────────────────
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
-        return ResponseEntity.ok(Map.of("status", "ok"));
+        Map<String, String> resp = new HashMap<>();
+        resp.put("status", "UP");
+        resp.put("service", "Pothole Detection Backend");
+        return ResponseEntity.ok(resp);
     }
 }
