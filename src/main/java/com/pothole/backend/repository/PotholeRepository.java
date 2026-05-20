@@ -15,3 +15,4 @@ public interface PotholeRepository extends JpaRepository<Pothole, Long> {
     // Filter by severity keyword (e.g. "Severe", "Medium", "Light")
     List<Pothole> findBySeverityContainingIgnoreCaseOrderByDetectedAtDesc(String severity);
 }
+

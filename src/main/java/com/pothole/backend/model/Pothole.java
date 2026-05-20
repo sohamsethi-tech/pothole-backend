@@ -32,6 +32,12 @@ public class Pothole {
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
+    @Column(name = "confidence_score")
+    private Integer confidenceScore;
+
+    @Column(name = "impact_description")
+    private String impactDescription;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = Instant.now();
@@ -68,4 +74,11 @@ public class Pothole {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Integer getConfidenceScore() { return confidenceScore; }
+    public void setConfidenceScore(Integer confidenceScore) { this.confidenceScore = confidenceScore; }
+
+    public String getImpactDescription() { return impactDescription; }
+    public void setImpactDescription(String impactDescription) { this.impactDescription = impactDescription; }
 }
+
