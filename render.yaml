@@ -1,0 +1,19 @@
+  services:
+  - type: web
+    name: potholescan-backend
+    env: docker
+    region: oregon
+    branch: main
+    dockerfilePath: Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+
+databases:
+  - name: potholescan-db
+    region: oregon
+    plan: starter
+    postgresVersion: 15
+
